@@ -1,5 +1,13 @@
 var pageinfodict={};
 
+function notif_alert(msg) {
+    browser.notifications.create({
+        type : 'basic',
+        message : msg,
+        title : 'Extension alert'
+    });
+}
+
 function listener(details) {
 	var pageanalysis=null;
 	var iconcolor=0;
@@ -39,13 +47,15 @@ function listener(details) {
 				}
 			}
 
-			if(iconcolor==1) {
-				browser.browserAction.setIcon( {path: {16: "icons/pi-yellow-16x16.png", 32: "icons/pi-yellow-32x32.png"}, tabId: pageanalysis['tabid'] });
-			} else if(iconcolor==2) {
-				browser.browserAction.setIcon( {path: {16: "icons/pi-green-16x16.png", 32: "icons/pi-green-32x32.png"}, tabId: pageanalysis['tabid'] });
-			} else {
-				browser.browserAction.setIcon( {path: {16: "icons/pi-white-16x16.png", 32: "icons/pi-white-32x32.png"}, tabId: pageanalysis['tabid'] });
-			}
+		if (pageanalysis.sigfail) { iconcolor=1;}
+		if(iconcolor==1) { // yellow
+			browser.browserAction.setIcon( {path: {512: "icons/roseman-yellow.png"}, tabId: pageanalysis['tabid'] });
+		} else if(iconcolor==2) { // green
+			browser.browserAction.setIcon( {path: {512: "icons/roseman.png"}, tabId: pageanalysis['tabid'] });
+		} else { // white
+			browser.browserAction.setIcon( {path: {512: "icons/question-mark.png"}, tabId: pageanalysis['tabid'] });
+		}
+
 		});
 		filter.disconnect();
 	};
@@ -55,7 +65,7 @@ function listener(details) {
 
 browser.webRequest.onBeforeRequest.addListener(
 	listener,
-	{ urls: ["https://*/*"], types: ["main_frame"] },
+	{ urls: ["https://*/*", "http://*/*"], types: ["main_frame"] },
 	["blocking"]
 );
 
@@ -75,6 +85,7 @@ async function analyzepagesource(tabid, url, source) {
 	var sourcebytes=new TextEncoder('utf-8').encode(source);
 	var sha256hex=null;
 	var verifiedsignaturepublickeys=[];
+	var sigfail=false;
 
 	//take sha256 hash of source
 	var sha256=await window.crypto.subtle.digest("SHA-256", sourcebytes);
@@ -153,10 +164,11 @@ async function analyzepagesource(tabid, url, source) {
 			var signatureverification=await window.crypto.subtle.verify(signaturealgorithm, publickey, signaturebytes, sourcebytes)
 			.catch(function(err) {
 				console.log('error verifying signature');
+				alert("error verify!")
 				console.error(err);
 			});
 			if(signatureverification==null) { continue; }
-			console.log('signature verified');
+			console.log('signature verify ran');
 
 			console.log('publickeyalgorithm: ' + JSON.stringify(publickeyalgorithm));
 			console.log('publickeybase64: ' + publickeybase64);
@@ -165,7 +177,13 @@ async function analyzepagesource(tabid, url, source) {
 			console.log('signatureverification: ' + signatureverification);
 			console.log('----------')
 			
-			if(signatureverification) {			
+			if(!signatureverification) {			
+				notif_alert('Warning: signature found, but verify failed! Be careful of attackers!')
+				console.log('h - verify failed')
+				sigfail = true;
+				//browser.browserAction.setIcon( {path: {512: "icons/roseman-yellow.png"}, tabId: pageanalysis['tabid'] });
+			}
+			else if(signatureverification) {			
 				verifiedsignaturepublickeys.push(pagesignatures.signatures[i].publickey);
 			}
 		}	
@@ -173,7 +191,7 @@ async function analyzepagesource(tabid, url, source) {
 
 	console.log('////////// end analyzepagesource() //////////')
 
-	var returndata={'tabid': tabid, 'url': url, 'pagesignaturesurl': pagesignaturesurl, 'sha256hash': sha256hex, 'verifiedsignaturepublickeys': verifiedsignaturepublickeys };
+	var returndata={'tabid': tabid, 'url': url, 'pagesignaturesurl': pagesignaturesurl, 'sha256hash': sha256hex, 'verifiedsignaturepublickeys': verifiedsignaturepublickeys, 'sigfail': sigfail };
 	return returndata;
 }
 

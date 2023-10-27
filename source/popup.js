@@ -274,12 +274,12 @@ function showpageanalysis() {
 			}
 		}
 
-		if(iconcolor==1) {
-			browser.browserAction.setIcon( {path: {16: "icons/pi-yellow-16x16.png", 32: "icons/pi-yellow-32x32.png"}, tabId: pageanalysis['tabid'] });
-		} else if(iconcolor==2) {
-			browser.browserAction.setIcon( {path: {16: "icons/pi-green-16x16.png", 32: "icons/pi-green-32x32.png"}, tabId: pageanalysis['tabid'] });
-		} else {
-			browser.browserAction.setIcon( {path: {16: "icons/pi-white-16x16.png", 32: "icons/pi-white-32x32.png"}, tabId: pageanalysis['tabid'] });
+		if(iconcolor==1) { // yellow
+			browser.browserAction.setIcon( {path: {512: "icons/roseman-yellow.png"}, tabId: pageanalysis['tabid'] });
+		} else if(iconcolor==2) { // green
+			browser.browserAction.setIcon( {path: {512: "icons/roseman.png"}, tabId: pageanalysis['tabid'] });
+		} else { // white
+			browser.browserAction.setIcon( {path: {512: "icons/question-mark.png"}, tabId: pageanalysis['tabid'] });
 		}
 
 	});		
